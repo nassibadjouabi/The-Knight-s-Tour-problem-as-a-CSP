@@ -1,10 +1,8 @@
 "use client"
-
-import { useEffect, useRef, useState } from "react"
-import ChessBoard from "../components/ChessBoard"
-import Controls from "../components/Controls"
-import { validateTour } from "../utils/validateTour"
-
+import { useEffect, useRef, useState } from "react";
+import ChessBoard from "./ChessBoard";  
+import Controls from "./Controls";      
+import { validateTour } from "../utils/validateTour";
 const SAMPLE_TOUR = [
   [0, 0],
   [1, 2],
@@ -72,7 +70,7 @@ const SAMPLE_TOUR = [
   [0, 4],
 ].slice(0, 64)
 
-export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQuit }) {
+export default function Visualizer({ apiUrl = "/api/tour", boardSize = 520, onQuit }) {
   const [tour, setTour] = useState([])
   const [index, setIndex] = useState(1)
   const [playing, setPlaying] = useState(false)
@@ -120,12 +118,16 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
   const handlePlayToggle = () => setPlaying((p) => !p)
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-slate-950">
+    <div
+      className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-slate-950"
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", overflow: "hidden" }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
         
+        /* Make background fixed to prevent scrolling */
         .bg-animated {
-          position: absolute;
+          position: fixed;
           inset: 0;
           background: 
             radial-gradient(circle at 20% 20%, rgba(99,102,241,0.15), transparent 15%),
@@ -134,6 +136,8 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
             linear-gradient(135deg, #0f172a 0%, #020617 50%, #0a0e27 100%);
           animation: bgShift 15s ease-in-out infinite;
           z-index: -1;
+          width: 100vw;
+          height: 100vh;
         }
         
         @keyframes bgShift {
@@ -147,6 +151,8 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
           color: #e2e8f0;
           width: 100%;
           height: 100%;
+          position: relative;
+          z-index: 1;
         }
         
         .glass-card {
@@ -158,11 +164,10 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
         }
         
         .board-container {
-          padding: 50px;
+          padding: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
         }
         
         .title {
@@ -227,7 +232,6 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
           letter-spacing: 0.5px;
         }
         
-        /* Layout optimization - flex for perfect centering, no scrolling needed */
         .main-layout {
           display: flex;
           gap: 48px;
@@ -245,52 +249,23 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
           justify-content: center;
         }
         
-        /* Panel height fixed to fit viewport without scrolling */
         .panel-wrapper {
           flex-shrink: 0;
           width: 380px;
-          max-height: calc(100vh - 60px);
-          display: flex;
-          flex-direction: column;
+          height: auto;
+          max-height: calc(100vh - 80px);
         }
         
         .panel-content {
           padding: 32px;
           display: flex;
           flex-direction: column;
-          gap: 0;
-          flex: 1;
-          overflow-y: auto;
-          scrollbar-width: thin;
-          scrollbar-color: rgba(99,102,241,0.3) transparent;
-        }
-        
-        .panel-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        .panel-content::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        
-        .panel-content::-webkit-scrollbar-thumb {
-          background: rgba(99,102,241,0.3);
-          border-radius: 3px;
+          gap: 16px;
         }
         
         .stats-section {
-          margin-bottom: 28px;
           padding-bottom: 20px;
           border-bottom: 1px solid rgba(148,163,184,0.1);
-        }
-        
-        .controls-section {
-          margin-bottom: 24px;
-        }
-        
-        .exit-button {
-          margin-top: auto;
-          padding-top: 16px;
         }
       `}</style>
 
@@ -299,7 +274,7 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
       <div className="viz-container relative flex items-center justify-center">
         <div className="main-layout">
           <div className="board-wrapper">
-            <div className="glass-card board-container" style={{ width: boardSize + 100, height: boardSize + 100 }}>
+            <div className="glass-card board-container" style={{ width: boardSize + 80, height: boardSize + 80 }}>
               <div style={{ width: boardSize, height: boardSize }}>
                 <ChessBoard tour={tour} currentStep={index} boardSize={boardSize} />
               </div>
@@ -307,11 +282,10 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
           </div>
 
           <div className="panel-wrapper">
-            <div className="glass-card" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <div className="glass-card">
               <div className="panel-content">
                 <div className="title">Knight's Tour</div>
 
-                {/* Stats Section */}
                 <div className="stats-section">
                   <div className="stat-label">Current Step</div>
                   <div className="stat-value">{index} / 64</div>
@@ -325,29 +299,22 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
                   </div>
                 </div>
 
-                {/* Controls Section */}
-                <div className="controls-section">
-                  <Controls
-                    onPrev={handlePrev}
-                    onNext={handleNext}
-                    onPlayToggle={handlePlayToggle}
-                    playing={playing}
-                    onExport={() => alert("Export PNG not implemented")}
-                    onQuit={onQuit}
-                  />
+                <Controls
+                  onPrev={handlePrev}
+                  onNext={handleNext}
+                  onPlayToggle={handlePlayToggle}
+                  playing={playing}
+                  onExport={() => alert("Export PNG not implemented")}
+                  onQuit={onQuit}
+                />
+
+                <div className="hint-text"  >
+                  Press <strong>Play</strong> 
                 </div>
 
-                {/* Hint */}
-                <div className="hint-text">
-                  Press <strong>Play</strong> to animate. Use arrows for steps.
-                </div>
-
-                {/* Exit Button */}
-                <div className="exit-button">
-                  <button className="btn-primary" onClick={() => onQuit()}>
-                    Exit Tour
-                  </button>
-                </div>
+                <button className="btn-primary" onClick={() => onQuit()}>
+                  Exit Tour
+                </button>
               </div>
             </div>
           </div>
@@ -371,7 +338,7 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 700, onQu
                 [{tour[tour.length - 1]?.join(", ")}]
               </strong>
             </p>
-            <button className="btn-primary" onClick={() => onQuit()} style={{ marginBottom: 0 }}>
+            <button className="btn-primary" onClick={() => onQuit()}>
               Exit
             </button>
           </div>
