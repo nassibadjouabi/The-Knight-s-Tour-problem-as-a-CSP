@@ -43,7 +43,7 @@ async function solveKnightTour(method, startX, startY) {
       throw new Error("Empty path from backend");
     }
 
-    return data.path;
+    return data;
   } catch (err) {
     console.error("API call failed:", err);
     throw new Error("Failed to solve knight tour: " + err.message);
@@ -124,6 +124,7 @@ export default function Visualizer({ method, startX, startY, boardSize = 520, on
   const [playing, setPlaying] = useState(false);
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [timeTaken, setTimeTaken] = useState(-1);
   const playRef = useRef(null);
 
   // LOAD THE TOUR FROM BACKEND
@@ -135,9 +136,10 @@ export default function Visualizer({ method, startX, startY, boardSize = 520, on
 
         const solvedTour = await solveKnightTour(method, startX, startY);
 
-        validateTour(solvedTour);
+        validateTour(solvedTour.path);
 
-        setTour(solvedTour);
+        setTour(solvedTour.path);
+        setTimeTaken(solvedTour.time);
 
         console.log("✔ Backend returned", solvedTour.length, "moves");
       } catch (e) {
@@ -374,6 +376,9 @@ export default function Visualizer({ method, startX, startY, boardSize = 520, on
                   <div style={{ fontSize: 16, color: "#cbd5e1", fontFamily: "monospace" }}>
                     [{(tour[index - 1] || ["-", "-"]).join(", ")}]
                   </div>
+                  <br />
+                  <div className="stat-label">Time Takens</div>
+                  <div className="stat-value">{timeTaken} s</div>
                 </div>
 
                 <Controls
