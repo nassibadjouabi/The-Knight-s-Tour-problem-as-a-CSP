@@ -7,35 +7,46 @@ import { validateTour } from "../utils/validateTour";
 // Fonction API - DOIT ÊTRE AVANT le composant
 async function solveKnightTour(method, startX, startY) {
   try {
-    const response = await fetch('http://localhost:3001/solve', {
-      method: 'POST',
+    const controller = new AbortController();
+
+    // 50-second timeout like your axios example
+    const timeout = setTimeout(() => controller.abort(), 50000);
+
+    const response = await fetch("http://localhost:8080/solve", {
+      method: "POST",
+      signal: controller.signal,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        method: method,
-        start: [startX, startY]
+        method: method,           // "heuristic" or "non-heuristic"
+        startX: startX,
+        startY: startY
       }),
-    })
+    });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json()
-    
-    if (data.error) {
-      throw new Error(data.error)
+    const data = await response.json();
+
+    // Expected backend:
+    // {status: "success", path: [...], time: xxx}
+    if (data.status !== "success") {
+      throw new Error(data.error || "Backend returned error");
     }
-    
-    if (!data.tour || data.tour.length === 0) {
-      throw new Error('No solution found')
+
+    if (!data.path || data.path.length === 0) {
+      throw new Error("Empty path from backend");
     }
-    
-    return data.tour
-  } catch (error) {
-    console.error('API call failed:', error)
-    throw new Error(`Failed to solve knight tour: ${error.message}`)
+
+    return data.path;
+  } catch (err) {
+    console.error("API call failed:", err);
+    throw new Error("Failed to solve knight tour: " + err.message);
   }
 }
 
@@ -108,63 +119,63 @@ const SAMPLE_TOUR = [
 
 // CORRECTION : Un seul export default function avec tous les bons paramètres
 export default function Visualizer({ method, startX, startY, boardSize = 520, onQuit }) {
-  const [tour, setTour] = useState([])
-  const [index, setIndex] = useState(1)
-  const [playing, setPlaying] = useState(false)
-  const [finished, setFinished] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const playRef = useRef(null)
+  const [tour, setTour] = useState([]);
+  const [index, setIndex] = useState(1);
+  const [playing, setPlaying] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const playRef = useRef(null);
 
-  // CORRECTION : Un seul useEffect pour charger le tour
+  // LOAD THE TOUR FROM BACKEND
   useEffect(() => {
     async function loadTour() {
       try {
-        setLoading(true)
-        console.log(`Loading tour with method: ${method}, start: [${startX}, ${startY}]`)
-        
-        // Appel à votre backend
-        const solvedTour = await solveKnightTour(method, startX, startY)
-        
-        if (solvedTour && solvedTour.length > 0) {
-          validateTour(solvedTour)
-          setTour(solvedTour)
-          console.log(`✅ Tour solved with ${solvedTour.length} moves`)
-        } else {
-          throw new Error("No solution found")
-        }
+        setLoading(true);
+        console.log(`Loading tour: method=${method}, start=[${startX}, ${startY}]`);
+
+        const solvedTour = await solveKnightTour(method, startX, startY);
+
+        validateTour(solvedTour);
+
+        setTour(solvedTour);
+
+        console.log("✔ Backend returned", solvedTour.length, "moves");
       } catch (e) {
-        console.warn("Using fallback tour:", e.message)
-        setTour(SAMPLE_TOUR)
+        console.warn("Backend failed → using fallback:", e.message);
+        setTour(SAMPLE_TOUR);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    loadTour()
-    return () => clearInterval(playRef.current)
-  }, [method, startX, startY])
+    loadTour();
+    return () => clearInterval(playRef.current);
+  }, [method, startX, startY]);
 
-  // Animation du jeu
+  // Animation
   useEffect(() => {
     if (playing) {
       playRef.current = setInterval(() => {
         setIndex((i) => {
           if (i >= 64) {
-            clearInterval(playRef.current)
-            setPlaying(false)
-            setFinished(true)
-            return 64
+            clearInterval(playRef.current);
+            setPlaying(false);
+            setFinished(true);
+            return 64;
           }
-          return i + 1
-        })
-      }, 300)
-    } else if (playRef.current) clearInterval(playRef.current)
-    return () => clearInterval(playRef.current)
-  }, [playing])
+          return i + 1;
+        });
+      }, 300);
+    } else if (playRef.current) {
+      clearInterval(playRef.current);
+    }
 
-  const handlePrev = () => setIndex((i) => Math.max(1, i - 1))
-  const handleNext = () => setIndex((i) => Math.min(64, i + 1))
-  const handlePlayToggle = () => setPlaying((p) => !p)
+    return () => clearInterval(playRef.current);
+  }, [playing]);
+
+  const handlePrev = () => setIndex((i) => Math.max(1, i - 1));
+  const handleNext = () => setIndex((i) => Math.min(64, i + 1));
+  const handlePlayToggle = () => setPlaying((p) => !p);
 
   return (
     <div

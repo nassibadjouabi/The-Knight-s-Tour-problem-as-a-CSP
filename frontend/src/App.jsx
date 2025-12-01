@@ -63,6 +63,8 @@ export default function App() {
     return (
       <Visualizer 
         method={selectedMethod}
+        startX={MethodSelection.startX}
+        startY={MethodSelection.startY}
         onBack={() => setCurrentView("method")}
         onRestart={() => setCurrentView("welcome")}
         onQuit={() => setQuit(true)}
