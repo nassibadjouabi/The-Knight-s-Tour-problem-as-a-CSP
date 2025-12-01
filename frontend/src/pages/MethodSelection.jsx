@@ -1,10 +1,7 @@
 "use client"
 import { useState } from "react"
 
-export default function MethodSelection({ onMethodSelect, onBack, onQuit }) {
-  const [startX, setStartX] = useState(0)
-  const [startY, setStartY] = useState(0)
-  
+export default function MethodSelection({ onMethodSelect, onBack, onQuit, startX, startY, setStartX, setStartY }) {
   const methods = [
     {
       id: 'heuristic',

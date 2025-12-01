@@ -7,6 +7,8 @@ import { solveKnightTour } from "./Api/knightApi";
 export default function App() {
   const [currentView, setCurrentView] = useState("welcome"); // "welcome", "method", "visualizer"
   const [selectedMethod, setSelectedMethod] = useState("");
+  const [startX, setStartX] = useState(0)
+  const [startY, setStartY] = useState(0)
   const [quit, setQuit] = useState(false);
 
   if (quit) {
@@ -54,6 +56,10 @@ export default function App() {
         }}
         onBack={() => setCurrentView("welcome")}
         onQuit={() => setQuit(true)}
+        startX={startX}
+        startY={startY}
+        setStartX={setStartX}
+        setStartY={setStartY}
       />
     );
   }
@@ -63,8 +69,8 @@ export default function App() {
     return (
       <Visualizer 
         method={selectedMethod}
-        startX={MethodSelection.startX}
-        startY={MethodSelection.startY}
+        startX={startX}
+        startY={startY}
         onBack={() => setCurrentView("method")}
         onRestart={() => setCurrentView("welcome")}
         onQuit={() => setQuit(true)}
