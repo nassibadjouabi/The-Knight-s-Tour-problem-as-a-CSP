@@ -3,6 +3,42 @@ import { useEffect, useRef, useState } from "react";
 import ChessBoard from "./ChessBoard";  
 import Controls from "./Controls";      
 import { validateTour } from "../utils/validateTour";
+
+// Fonction API - DOIT ÊTRE AVANT le composant
+async function solveKnightTour(method, startX, startY) {
+  try {
+    const response = await fetch('http://localhost:3001/solve', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method: method,
+        start: [startX, startY]
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    
+    if (data.error) {
+      throw new Error(data.error)
+    }
+    
+    if (!data.tour || data.tour.length === 0) {
+      throw new Error('No solution found')
+    }
+    
+    return data.tour
+  } catch (error) {
+    console.error('API call failed:', error)
+    throw new Error(`Failed to solve knight tour: ${error.message}`)
+  }
+}
+
 const SAMPLE_TOUR = [
   [0, 0],
   [1, 2],
@@ -70,32 +106,45 @@ const SAMPLE_TOUR = [
   [0, 4],
 ].slice(0, 64)
 
-export default function Visualizer({ apiUrl = "/api/tour", boardSize = 520, onQuit }) {
+// CORRECTION : Un seul export default function avec tous les bons paramètres
+export default function Visualizer({ method, startX, startY, boardSize = 520, onQuit }) {
   const [tour, setTour] = useState([])
   const [index, setIndex] = useState(1)
   const [playing, setPlaying] = useState(false)
   const [finished, setFinished] = useState(false)
+  const [loading, setLoading] = useState(true)
   const playRef = useRef(null)
 
+  // CORRECTION : Un seul useEffect pour charger le tour
   useEffect(() => {
     async function loadTour() {
       try {
-        const res = await fetch(apiUrl)
-        if (!res.ok) throw new Error("Backend not ready")
-        const data = await res.json()
-        if (data.tour) {
-          validateTour(data.tour)
-          setTour(data.tour)
-        } else throw new Error("No tour field")
+        setLoading(true)
+        console.log(`Loading tour with method: ${method}, start: [${startX}, ${startY}]`)
+        
+        // Appel à votre backend
+        const solvedTour = await solveKnightTour(method, startX, startY)
+        
+        if (solvedTour && solvedTour.length > 0) {
+          validateTour(solvedTour)
+          setTour(solvedTour)
+          console.log(`✅ Tour solved with ${solvedTour.length} moves`)
+        } else {
+          throw new Error("No solution found")
+        }
       } catch (e) {
         console.warn("Using fallback tour:", e.message)
         setTour(SAMPLE_TOUR)
+      } finally {
+        setLoading(false)
       }
     }
+
     loadTour()
     return () => clearInterval(playRef.current)
-  }, [apiUrl])
+  }, [method, startX, startY])
 
+  // Animation du jeu
   useEffect(() => {
     if (playing) {
       playRef.current = setInterval(() => {
@@ -275,9 +324,15 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 520, onQu
         <div className="main-layout">
           <div className="board-wrapper">
             <div className="glass-card board-container" style={{ width: boardSize + 80, height: boardSize + 80 }}>
-              <div style={{ width: boardSize, height: boardSize }}>
-                <ChessBoard tour={tour} currentStep={index} boardSize={boardSize} />
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-white text-xl">Loading tour with {method} algorithm...</div>
+                </div>
+              ) : (
+                <div style={{ width: boardSize, height: boardSize }}>
+                  <ChessBoard tour={tour} currentStep={index} boardSize={boardSize} />
+                </div>
+              )}
             </div>
           </div>
 
@@ -287,6 +342,17 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 520, onQu
                 <div className="title">Knight's Tour</div>
 
                 <div className="stats-section">
+                  {/* AJOUT: Informations sur l'algorithme et position de départ */}
+                  <div className="stat-label">Algorithm</div>
+                  <div className="stat-value" style={{ fontSize: '16px', textTransform: 'capitalize' }}>
+                    {method}
+                  </div>
+
+                  <div className="stat-label">Start Position</div>
+                  <div className="stat-value" style={{ fontSize: '16px' }}>
+                    [{startX}, {startY}]
+                  </div>
+
                   <div className="stat-label">Current Step</div>
                   <div className="stat-value">{index} / 64</div>
 
@@ -308,8 +374,8 @@ export default function Visualizer({ apiUrl = "/api/tour", boardSize = 520, onQu
                   onQuit={onQuit}
                 />
 
-                <div className="hint-text"  >
-                  Press <strong>Play</strong> 
+                <div className="hint-text">
+                  Press <strong>Play</strong> to animate the knight's tour
                 </div>
 
                 <button className="btn-primary" onClick={() => onQuit()}>

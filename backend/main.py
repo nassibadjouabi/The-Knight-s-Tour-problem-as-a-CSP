@@ -16,8 +16,6 @@ async def solve_tour(request):
         
         solver = Knight(start_x, start_y, use_heuristics)
         
-        # Running the blocking CPU-bound algorithm
-        # In production, run this in an executor to avoid blocking the async loop
         start_time = time.time()
         solution = solver.solve()
         end_time = time.time()
@@ -38,8 +36,31 @@ async def solve_tour(request):
         print(f"Error: {e}")
         return web.json_response({'status': 'error', 'message': str(e)}, status=500)
 
-app = web.Application()
+# AJOUTEZ CES FONCTIONS POUR CORS
+async def handle_options(request):
+    return web.Response(
+        status=200,
+        headers={
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        }
+    )
+
+@web.middleware
+async def cors_middleware(request, handler):
+    if request.method == 'OPTIONS':
+        return await handle_options(request)
+    
+    response = await handler(request)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+app = web.Application(middlewares=[cors_middleware])
 app.router.add_post('/solve', solve_tour)
+app.router.add_options('/solve', handle_options)  # Pour les preflight requests
 
 if __name__ == '__main__':
     print("Starting server at http://localhost:8080")

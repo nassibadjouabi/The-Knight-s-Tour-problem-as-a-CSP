@@ -1,39 +1,72 @@
 import React, { useState } from "react";
+import Welcome from "./pages/Welcome";
+import MethodSelection from "./pages/MethodSelection";
 import Visualizer from "./pages/Visualizer";
+import { solveKnightTour } from "./Api/knightApi";
 
 export default function App() {
-  const [started, setStarted] = useState(false);
+  const [currentView, setCurrentView] = useState("welcome"); // "welcome", "method", "visualizer"
+  const [selectedMethod, setSelectedMethod] = useState("");
   const [quit, setQuit] = useState(false);
 
   if (quit) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <h1 className="text-3xl font-bold">Merci d’avoir joué !</h1>
-      </div>
-    );
-  }
-
-  if (!started) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-purple-400 to-pink-500 text-white">
-        <h1 className="text-4xl font-bold mb-8">Knight's Tour</h1>
-        <div className="space-x-4">
-          <button
-            className="px-6 py-3 bg-white text-purple-600 font-bold rounded-lg hover:bg-gray-200 transition"
-            onClick={() => setStarted(true)}
+      <div className="thank-you-screen">
+        <div className="animated-bg"></div>
+        <div className="thank-you-content">
+          <div className="thank-you-icon">🎉</div>
+          <h1 className="thank-you-title">Merci d'avoir joué !</h1>
+          <p className="thank-you-message">
+            Nous espérons que vous avez apprécié le Knight's Tour
+          </p>
+          <button 
+            className="play-again-btn"
+            onClick={() => {
+              setQuit(false);
+              setCurrentView("welcome");
+              setSelectedMethod("");
+            }}
           >
-            Start
-          </button>
-          <button
-            className="px-6 py-3 bg-red-500 font-bold rounded-lg hover:bg-red-600 transition"
-            onClick={() => setQuit(true)}
-          >
-            Quit
+            Rejouer
           </button>
         </div>
       </div>
     );
   }
 
-  return <Visualizer onQuit={() => setQuit(true)} />;
+  // Fenêtre 1: Welcome
+  if (currentView === "welcome") {
+    return (
+      <Welcome 
+        onStart={() => setCurrentView("method")}
+        onQuit={() => setQuit(true)}
+      />
+    );
+  }
+
+  // Fenêtre 2: Sélection de méthode
+  if (currentView === "method") {
+    return (
+      <MethodSelection 
+        onMethodSelect={(method) => {
+          setSelectedMethod(method);
+          setCurrentView("visualizer");
+        }}
+        onBack={() => setCurrentView("welcome")}
+        onQuit={() => setQuit(true)}
+      />
+    );
+  }
+
+  // Fenêtre 3: Visualisation
+  if (currentView === "visualizer") {
+    return (
+      <Visualizer 
+        method={selectedMethod}
+        onBack={() => setCurrentView("method")}
+        onRestart={() => setCurrentView("welcome")}
+        onQuit={() => setQuit(true)}
+      />
+    );
+  }
 }
